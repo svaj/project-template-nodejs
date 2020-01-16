@@ -20,7 +20,7 @@
   "license": "Apache-2.0",
   "private": false,
   "engines": {
-    "node":  ">12.0.0",
+    "node": ">12.0.0",
     "yarn": ">1.9.2"
   },
   "directories": {
@@ -28,7 +28,7 @@
     "lib": "src/lib"
   },
   "config": {
-    "cache" : "./.cache",
+    "cache": "./.cache",
     "engine-strict": true
   },
   "type": "module",
@@ -43,6 +43,9 @@
     "postinstall": "echo \"Install complete, run your project with `yarn start`!\"",
     "preversion": "echo \"About to release a new version\" && yarn test",
     "postversion": "git push && git push --tags && yarn publish . --tag $npm_package_version && git push && echo \"Successfully released version $npm_package_version!\" && yarn run open-releases",
-    "start": "node --experimental-modules src/index.js"
+    "start": "node --experimental-modules --es-module-specifier-resolution=node src/index.js"
+  },
+  "dependencies": {
+    "winston": "^3.2.1"
   }
 }
