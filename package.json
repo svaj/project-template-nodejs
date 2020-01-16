@@ -34,18 +34,36 @@
   "type": "module",
   "scripts": {
     "test": "jest",
-    "release": "git checkout master && git pull && npm version",
+    "release": "git checkout master && git pull && yarn version",
     "release-minor": "yarn run release minor",
     "release-patch": "yarn run release patch",
     "release-major": "yarn run release major",
     "open-releases": "open \"$(node -e 'console.log(`${require(\"./package.json\").repository}/releases`)')\"",
     "preinstall": "echo \"Thank you for using svaj's node project template!\"",
-    "postinstall": "echo \"Install complete, run your project with `yarn start`!\"",
+    "postinstall": "echo \"Install complete, run your project with \\\"yarn start\\\"!\"",
     "preversion": "echo \"About to release a new version\" && yarn test",
     "postversion": "git push && git push --tags && yarn publish . --tag $npm_package_version && git push && echo \"Successfully released version $npm_package_version!\" && yarn run open-releases",
     "start": "node --experimental-modules --es-module-specifier-resolution=node src/index.js"
   },
   "dependencies": {
     "winston": "^3.2.1"
+  },
+  "devDependencies": {
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-config-prettier": "^6.9.0",
+    "eslint-formatter-pretty": "^3.0.1",
+    "eslint-plugin-import": "^2.20.0",
+    "eslint-plugin-jest": "^23.6.0",
+    "eslint-plugin-prefer-object-spread": "^1.2.1",
+    "husky": "^4.0.10",
+    "jest": "^24.9.0",
+    "jest-config": "^24.9.0",
+    "jest-junit": "^10.0.0",
+    "jest-runner-eslint": "^0.7.5",
+    "jest-silent-reporter": "^0.1.2",
+    "lint-staged": "^9.5.0",
+    "prettier": "^1.19.1",
+    "typescript": "^3.7.5"
   }
 }

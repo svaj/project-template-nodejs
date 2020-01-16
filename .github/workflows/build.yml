@@ -407,7 +407,7 @@ jobs:
     name: Run test suite
     runs-on: [ubuntu-latest, self-hosted]
     needs: deploy
-    if: context.event_name === 'push' && startsWith(context.event.ref, 'refs/tags/v')
+    if: github.event_name === 'push' && startsWith(github.event.ref, 'refs/tags/v')
     steps:
     - name: 'Checkout'
       uses: 'actions/checkout@v1'
@@ -430,6 +430,6 @@ jobs:
     - name: Install dependencies
       run: yarn install
       if: steps.cache-deps.outputs.cache-hit != 'true'
-    - run: yarn publish
+    - run: yarn release
       env:
         NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
