@@ -1,0 +1,48 @@
+{
+  "name": "project-template-nodejs",
+  "version": "1.0.0",
+  "description": "Template project for node projects",
+  "keywords": [
+    "github",
+    "actions",
+    "ci",
+    "opinionated",
+    "scaffold",
+    "template"
+  ],
+  "main": "src/index.js",
+  "repository": "git@github.com:svaj/project-template-nodejs.git",
+  "bugs": {
+    "url": "https://github.com/svaj/project-template-nodejs/issues",
+    "email": "bugs@svajlenka.com"
+  },
+  "author": "Chris Svajlenka <chris@svajlenka.com> (https://svajlenka.com/)",
+  "license": "Apache-2.0",
+  "private": false,
+  "engines": {
+    "node":  ">12.0.0",
+    "yarn": ">1.9.2"
+  },
+  "directories": {
+    "doc": "docs",
+    "lib": "src/lib"
+  },
+  "config": {
+    "cache" : "./.cache",
+    "engine-strict": true
+  },
+  "type": "module",
+  "scripts": {
+    "test": "jest",
+    "release": "git checkout master && git pull && npm version",
+    "release-minor": "yarn run release minor",
+    "release-patch": "yarn run release patch",
+    "release-major": "yarn run release major",
+    "open-releases": "open \"$(node -e 'console.log(`${require(\"./package.json\").repository}/releases`)')\"",
+    "preinstall": "echo \"Thank you for using svaj's node project template!\"",
+    "postinstall": "echo \"Install complete, run your project with `yarn start`!\"",
+    "preversion": "echo \"About to release a new version\" && yarn test",
+    "postversion": "git push && git push --tags && yarn publish . --tag $npm_package_version && git push && echo \"Successfully released version $npm_package_version!\" && yarn run open-releases",
+    "start": "node --experimental-modules src/index.js"
+  }
+}
