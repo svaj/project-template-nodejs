@@ -33,7 +33,8 @@
   },
   "type": "module",
   "scripts": {
-    "test": "jest",
+    "test": "jest --passWithNoTests",
+    "lint": "eslint",
     "release": "git checkout master && git pull && yarn version",
     "release-minor": "yarn run release minor",
     "release-patch": "yarn run release patch",
