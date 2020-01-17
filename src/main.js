@@ -15,7 +15,7 @@ export const main = (logger = loggerInstance) => {
     logger.info({ method: ctx.method, url: ctx.url, responseTime: rt });
   });
 
-  // response time
+  // response time - TODO: use hr.processTime
   app.use(async (ctx, next) => {
     const start = Date.now();
     await next();
@@ -27,6 +27,7 @@ export const main = (logger = loggerInstance) => {
   app.use(async ctx => {
     ctx.body = 'Hello World';
   });
+  logger.info('App ready to listen');
   return app;
 };
 
