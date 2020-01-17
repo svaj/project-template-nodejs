@@ -1,6 +1,6 @@
 runtime: nodejs12
 
-service: project-name
+service: project-template-node
 
 includes:
 - secret.yaml

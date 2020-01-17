@@ -15,7 +15,7 @@ export const Logger = ({ level, isDisabled }) => {
     const configuredFormat = format.json();
     // console transport
     const consoleTransport = new transports.Console({
-      format: format.simple(),
+      format: format.json(),
       consoleWarnLevels: ['warn'],
       stderrLevels: ['error'],
     });
