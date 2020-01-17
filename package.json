@@ -33,7 +33,7 @@
   },
   "type": "module",
   "scripts": {
-    "test-ci": "nyc _mocha --config=\"${npm_package_config_path}/.mocharc.js\" -r esm --reporter mocha-junit-reporter",
+    "test-ci": "nyc _mocha --config=\"${INIT_CWD}/.mocharc.js\" -r esm --reporter mocha-junit-reporter",
     "test": "_mocha -r esm --config=.mocharc.js",
     "lint": "eslint src",
     "release": "git checkout master && git pull && yarn version",
