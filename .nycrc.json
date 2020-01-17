@@ -5,7 +5,7 @@
   ],
   "require": [
     "esm",
-    "./mocha-helper.js"
+
   ],
   "exclude": [],
   "reporter": ["html"]
