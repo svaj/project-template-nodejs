@@ -4,8 +4,7 @@
     "src"
   ],
   "require": [
-    "esm",
-
+    "esm"
   ],
   "exclude": [],
   "reporter": ["html"]
