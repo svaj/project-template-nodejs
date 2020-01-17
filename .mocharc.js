@@ -3,7 +3,7 @@ module.exports = {
   extension: ['js'],
   opts: false,
   recursive: true,
-  require: ['esm', './mocha-helper.js'],
+  require: ['./mocha-helper.js'],
   package: './package.json',
   reporter: 'spec',
   slow: 75,

@@ -1,3 +1,4 @@
+/* eslint-disable import/no-extraneous-dependencies */
 import { assert, expect, should } from 'chai';
 import { fake, mock, replace, restore, spy } from 'sinon';
 
@@ -10,5 +11,4 @@ global.fake = fake;
 global.spy = spy;
 global.restore = restore;
 global.replace = replace;
-global.mock = mock
-
+global.mock = mock;

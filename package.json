@@ -34,7 +34,7 @@
   "type": "module",
   "scripts": {
     "test-ci": "nyc --config=.nycrc.json mocha --config=./.mocharc.js --reporter mocha-junit-reporter",
-    "test": "mocha --config=.mocharc.js",
+    "test": "mocha -r esm --config=.mocharc.js",
     "lint": "eslint src",
     "release": "git checkout master && git pull && yarn version",
     "release-minor": "yarn run release minor",
