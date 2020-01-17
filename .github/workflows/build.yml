@@ -81,11 +81,11 @@ jobs:
       with:
         name: code-test-report
         path: test-results.xml
-    - name: Upload coverage
-      uses: actions/upload-artifact@v1
-      with:
-        name: code-coverage-report
-        path: coverage
+    # - name: Upload coverage
+    #   uses: actions/upload-artifact@v1
+    #   with:
+    #     name: code-coverage-report
+    #     path: coverage
 
 
   lint:
