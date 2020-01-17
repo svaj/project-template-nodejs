@@ -1,0 +1,52 @@
+{
+  "parserOptions": {
+    "ecmaVersion": 2017,
+    "sourceType": "module"
+  },
+  "extends": ["airbnb-base", "plugin:import/errors", "plugin:import/warnings"],
+  "plugins": ["mocha", "import","prefer-object-spread"],
+  // "parser": "babel-eslint",
+  "env": {
+    "es2017": true,
+    "node": true,
+    "mocha": true
+  },
+  "globals": {
+    "expect": "readonly",
+    "assert": "readonly",
+    "fake": "readonly",
+    "mock": "readonly",
+    "replace": "readonly",
+    "restore": "readonly",
+    "spy": "readonly"
+  },
+  "overrides": [{
+    "files": ["*.spec.js"],
+    "extends": ["plugin:import/errors", "plugin:import/warnings", "plugin:mocha/recommended", "plugin:chai-expect/recommended"],
+    "plugins": ["mocha","chai-expect", "import","prefer-object-spread"],
+    "rules": {
+      "prefer-arrow-callback": "off",
+      "func-names": "off",
+    }
+  }],
+  "rules": {
+    "no-unused-vars": "warn",
+    "no-console": "off",
+    "arrow-body-style": "off",
+    "indent": "warn",
+    "consistent-return": "off",
+    "no-else-return": "off",
+    "global-require": "off",
+    "no-param-reassign": ["error", { "props": false }],
+    "new-cap": "off",
+    "arrow-parens": "off",
+    "prefer-object-spread/prefer-object-spread": 2,
+    "no-use-before-define": "off",
+    "import/no-cycle": "off",
+    "max-len":["error", {
+      "code": 140,
+      "ignoreComments": true,
+      "ignoreStrings": true
+    }]
+  },
+}

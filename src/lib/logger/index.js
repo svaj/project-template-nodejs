@@ -1,6 +1,8 @@
 import winston from 'winston';
 
-const {createLogger, format, transports, config} = winston
+const {
+  createLogger, format, transports, config,
+} = winston;
 export const Logger = ({ level, isDisabled }) => {
   const configuredTransports = [];
   const exceptionHandlers = [];
@@ -29,10 +31,10 @@ export const Logger = ({ level, isDisabled }) => {
       exceptionHandlers,
       exitOnError: false,
     });
-    configuredTransports.forEach(transport => winston.add(transport))
+    configuredTransports.forEach(transport => winston.add(transport));
   }
 
   return logger;
 };
 
-export default Logger
+export default Logger;

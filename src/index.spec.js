@@ -1,13 +1,11 @@
 import { entrypoint } from './index';
 
-describe('entrypoint', () => {
+describe('entrypoint', function () {
   let logger;
-  let result;
-  beforeEach(()=>{
-    logger = {
-      info: fake(),
-    }
-    result = entrypoint(logger)
-  })
-  it('should call logger.info once',()=>expect(logger.info.callCount).equal(1) )
-})
+
+  it('should call logger.info once', function () {
+    logger = { info: fake() };
+    entrypoint(logger);
+    return expect(logger.info.callCount).equal(1);
+  });
+});
