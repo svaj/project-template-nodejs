@@ -4,7 +4,10 @@
     "src"
   ],
   "requires": [
-    "esm"
+    "esm",
+    "mocha",
+    "./mocha-helper.js"
   ],
-  "exclude": []
+  "exclude": [],
+  "reporter": ["html"]
 }
