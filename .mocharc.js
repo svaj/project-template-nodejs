@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   diff: true,
   extension: ['js'],
   opts: false,
