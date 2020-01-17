@@ -33,7 +33,7 @@
   },
   "type": "module",
   "scripts": {
-    "test-ci": "nyc --reporter html mocha --config=.mocharc.js --reporter mocha-junit-reporter",
+    "test-ci": "ls -al . && nyc --reporter html mocha --config=.mocharc.js --reporter mocha-junit-reporter",
     "test": "mocha --config=.mocharc.js",
     "lint": "eslint src",
     "release": "git checkout master && git pull && yarn version",
