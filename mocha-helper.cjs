@@ -1,6 +1,8 @@
 /* eslint-disable import/no-extraneous-dependencies */
-import { assert, expect, should } from 'chai';
-import { fake, mock, replace, restore, spy } from 'sinon';
+const { assert, expect, should } = require('chai');
+const {
+  fake, mock, replace, restore, spy,
+} = require('sinon');
 
 
 global.expect = expect;

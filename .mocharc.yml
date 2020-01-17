@@ -4,7 +4,7 @@ extension:
 opts: false
 recursive: true
 require: 
-  - "./mocha-helper.js"
+  - "./mocha-helper.cjs"
 reporter: spec
 slow: 75
 sort: false
