@@ -1,0 +1,15 @@
+{
+	"editor.renderWhitespace": "all",
+	"editor.wordWrapColumn": 140,
+	"files.exclude": {
+		"*.log": true,
+		"dist": true,
+		"coverage": true,
+    ".cache": true,
+		"node_modules": true
+	},
+	"editor.codeActionsOnSave": {
+		"source.organizeImports": true,
+		"source.fixAll.eslint": true,
+	}
+}
