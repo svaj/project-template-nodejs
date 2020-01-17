@@ -3,8 +3,9 @@
   "include": [
     "src"
   ],
-  "requires": [
+  "require": [
     "esm",
+    "mocha",
     "./mocha-helper.js"
   ],
   "exclude": [],
