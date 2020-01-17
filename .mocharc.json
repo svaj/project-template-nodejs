@@ -3,7 +3,7 @@
   "extension": ["js"],
   "opts": false,
   "recursive": true,
-  "require": ["./mocha-helper.js"],
+  "require": ["./mocha-helper.cjs"],
   "package": "./package.json",
   "reporter": "spec",
   "slow": 75,
