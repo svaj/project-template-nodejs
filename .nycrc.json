@@ -5,7 +5,6 @@
   ],
   "requires": [
     "esm",
-    "mocha",
     "./mocha-helper.js"
   ],
   "exclude": [],
