@@ -1,11 +1,11 @@
-import { entrypoint } from './index';
+import { main } from './main';
 
-describe('entrypoint', function () {
+describe('main', function () {
   let logger;
 
   it('should call logger.info once', function () {
     logger = { info: fake() };
-    entrypoint(logger);
+    main(logger);
     return expect(logger.info.callCount).equal(1);
   });
 });

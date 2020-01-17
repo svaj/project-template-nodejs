@@ -10,7 +10,6 @@
     "scaffold",
     "template"
   ],
-  "main": "src/index.js",
   "repository": "git@github.com:svaj/project-template-nodejs.git",
   "bugs": {
     "url": "https://github.com/svaj/project-template-nodejs/issues",
@@ -31,14 +30,15 @@
     "cache": "./.cache",
     "engine-strict": true
   },
-  "type": "module",
+  "main": "src/index.js",
+  "module": "src/main.js",
   "esm": {
     "cjs": true,
     "mode": "all"
   },
   "scripts": {
-    "test-ci": "nyc _mocha -r esm --reporter mocha-junit-reporter",
-    "test": "_mocha -r esm --config=.mocharc.yml",
+    "test-ci": "nyc mocha --config=.mocharc.yml --reporter mocha-junit-reporter",
+    "test": "mocha --config=.mocharc.yml",
     "lint": "eslint src",
     "release": "git checkout master && git pull && yarn version",
     "release-minor": "yarn run release minor",
@@ -49,7 +49,7 @@
     "postinstall": "echo \"Install complete, run your project with \\\"yarn start\\\"!\"",
     "preversion": "echo \"About to release a new version\" && yarn test",
     "postversion": "git push && git push --tags && yarn publish . --tag $npm_package_version && git push && echo \"Successfully released version $npm_package_version!\" && yarn run open-releases",
-    "start": "node -r esm src/index.js"
+    "start": "node src/index.js"
   },
   "lint-staged": {
     "src/**/*.js": [

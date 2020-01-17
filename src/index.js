@@ -1,13 +1,5 @@
-import { Logger } from './lib/logger';
+// eslint-disable-next-line no-global-assign
+require = require('esm')(module/* , options */);
+module.exports = require('./main.js');
 
-export const loggerInstance = Logger({
-  level: 'debug',
-});
-
-
-export const entrypoint = (logger) => {
-  logger.info('Hello world.');
-};
-
-
-entrypoint(loggerInstance);
+module.exports.main();

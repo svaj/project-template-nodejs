@@ -29,6 +29,8 @@ node_modules/
 
 # Yarn Integrity file
 .yarn-integrity
+.pnp
+.pnp.js
 
 # dotenv environment variables file
 .env
