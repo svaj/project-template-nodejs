@@ -6,7 +6,9 @@
 		"dist": true,
 		"coverage": true,
     ".cache": true,
-		"node_modules": true
+		"node_modules": true,
+    ".nyc_output": true,
+    "test-results.xml": true,
 	},
 	"editor.codeActionsOnSave": {
 		"source.organizeImports": true,

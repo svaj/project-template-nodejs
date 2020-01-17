@@ -1,7 +1,13 @@
 import Logger from './lib/logger';
 
-const logger = Logger({
+export const loggerInstance = Logger({
   level: 'debug'
 })
 
-logger.info("Hello world.")
+
+export const entrypoint = (logger) => {
+  logger.info("Hello world.")
+}
+
+
+entrypoint(loggerInstance);
