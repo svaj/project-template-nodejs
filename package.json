@@ -37,7 +37,7 @@
     "mode": "all"
   },
   "scripts": {
-    "test-ci": "nyc mocha --config=.mocharc.yml --reporter mocha-junit-reporter",
+    "test-ci": "nyc --reporter html mocha --config=.mocharc.yml --reporter mocha-junit-reporter",
     "test": "mocha --config=.mocharc.yml",
     "lint": "eslint src",
     "release": "git checkout master && git pull && yarn version",
