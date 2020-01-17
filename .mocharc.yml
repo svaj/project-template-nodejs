@@ -1,0 +1,15 @@
+diff: true
+extension: 
+  - js
+opts: false
+recursive: true
+require: 
+  - "./mocha-helper.js"
+reporter: spec
+slow: 75
+sort: false
+timeout: 2000
+ui: bdd
+spec: "src/**/*.spec.js"
+watch-files: 
+  - "src/**/*.js"
