@@ -40,6 +40,7 @@
     "test-ci": "nyc --reporter html mocha --config=.mocharc.yml --reporter mocha-junit-reporter",
     "test": "mocha --config=.mocharc.yml",
     "lint": "eslint src",
+    "build": "mkdir -p dist",
     "release": "git checkout master && git pull && yarn version",
     "release-minor": "yarn run release minor",
     "release-patch": "yarn run release patch",
