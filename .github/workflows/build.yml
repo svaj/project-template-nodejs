@@ -75,7 +75,7 @@ jobs:
       # if: steps.cache-deps.outputs.cache-hit != 'true'
       run: yarn install --frozen-lockfile
     - name: Run tests
-      run: yarn test
+      run: yarn test-ci
     - name: Upload Test Report
       uses: actions/upload-artifact@v1
       with:
