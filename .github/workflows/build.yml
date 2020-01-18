@@ -9,7 +9,7 @@ on:
     tags:
       - 'v-*'
 env:
-  CI: true
+  CI: true 
   DEV_REF: heads/develop
   STAGING_REF: heads/master
   PRODUCTION_REF: tags/v-*
@@ -189,6 +189,7 @@ jobs:
       id: configure-deploy
       with:
         github-token: ${{github.token}}
+        debug: true
         script: |
           const shortSha = context.sha.substr(0,8)
           const gaeProject = process.env.GAE_PROJECT;
@@ -196,7 +197,7 @@ jobs:
           const environments = {
             review: {
               ref: false,
-              name: process.env.REVIEW_ENVIROMENT,
+              name: process.env.REVIEW_ENVIRONMENT,
               transient: true,
               production: false,
               gaeVersion: `pr-${context.payload.number}`,
@@ -248,11 +249,18 @@ jobs:
           // determine what environment we're acting on.
           if (isPush && sourceRef.indexOf(process.env.DEV_REF) > 1) {
             environment = environments.dev;
+            console.info("DEV!")
           } else if (isPush && sourceRef.indexOf(process.env.STAGING_REF) > 1) {
             environment = environments.staging;
+            console.info("STG!")
           } else if (isPush && sourceRef.indexOf(process.env.PRODUCTION_REF) > 1) {
             environment = environments.production;
+            console.info("PRD!")
+          } else {
+            console.info("RVW")
           }
+          console.info('sourceRef', sourceRef)
+          console.info('selected env', environment)
 
           const flags = getFlags(environment)
           const production_environment = environment.production;
