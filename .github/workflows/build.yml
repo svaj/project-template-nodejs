@@ -192,12 +192,12 @@ jobs:
         script: |
           const environments = {
             review: {
-              ref: false
+              ref: false,
               name: process.env.REVIEW_ENVIROMENT,
               transient: true,
               production: false,
               gaeVersion: `pr-${context.payload.number}`,
-              extraFlags: ''
+              extraFlags: '',
               auto_inactive: false,
             },
             dev: {
@@ -206,7 +206,7 @@ jobs:
               transient: false,
               production: false,
               gaeVersion:`${process.env.DEVELOPMENT_ENVIRONMENT}-${shortSha}`,
-              extraFlags: ''
+              extraFlags: '',
               auto_inactive: true,
             },
             staging: {
@@ -215,7 +215,7 @@ jobs:
               transient: false,
               production: false,
               gaeVersion:`${process.env.STAGING_ENVIRONMENT}-${shortSha}`,
-              extraFlags: ''
+              extraFlags: '',
               auto_inactive: true,
             },
             production: {
@@ -224,24 +224,25 @@ jobs:
               transient: false,
               production: true,
               gaeVersion: `${process.env.PRODUCTION_ENVIRONMENT}-${shortSha}`,
-              extraFlags: '--promote'
+              extraFlags: '--promote',
               auto_inactive: true,
             },
-          }
+          };
+          const gaeProject = process.env.GAE_PROJECT;
+          const gaeService = process.env.GAE_SERVICE;
+
           const getFlags = env =>  `--no-stop-previous-version --version=${env.gaeVersion} --project=${gaeProject} -q ${env.extraFlags || ''}`;
           let environment = environments.review;
           let sourceRef = context.ref;
           let isPush = false
           let description = `Environment for ${sourceRef}`
-          
+
           if (context.eventName === 'pull_request') {
             sourceRef = context.payload.pull_request.head.ref
           }
           if (context.eventName === 'push') {
             isPush = true
           }
-          const gaeProject = process.env.GAE_PROJECT;
-          const gaeService = process.env.GAE_SERVICE;
           const shortSha = context.sha.substr(0,8)
 
           // determine what environment we're acting on.
@@ -274,6 +275,7 @@ jobs:
           console.info(`::set-env name=TARGET_ENV::${JSON.stringify(environment)}`);
           console.info(`::set-env name=ENV_URL::${url}`);
           console.info(`::set-env name=DEPLOY_FLAGS::${flags}`);
+
     - uses: actions/github-script@0.4.0
       name: Create Deployment in github
       if: success()
