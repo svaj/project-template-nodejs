@@ -190,6 +190,9 @@ jobs:
       with:
         github-token: ${{github.token}}
         script: |
+          const shortSha = context.sha.substr(0,8)
+          const gaeProject = process.env.GAE_PROJECT;
+          const gaeService = process.env.GAE_SERVICE;
           const environments = {
             review: {
               ref: false,
@@ -228,8 +231,6 @@ jobs:
               auto_inactive: true,
             },
           };
-          const gaeProject = process.env.GAE_PROJECT;
-          const gaeService = process.env.GAE_SERVICE;
 
           const getFlags = env =>  `--no-stop-previous-version --version=${env.gaeVersion} --project=${gaeProject} -q ${env.extraFlags || ''}`;
           let environment = environments.review;
@@ -243,7 +244,6 @@ jobs:
           if (context.eventName === 'push') {
             isPush = true
           }
-          const shortSha = context.sha.substr(0,8)
 
           // determine what environment we're acting on.
           if (isPush && sourceRef.indexOf(process.env.DEV_REF) > 1) {
