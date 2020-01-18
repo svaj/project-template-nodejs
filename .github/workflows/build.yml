@@ -24,6 +24,9 @@ env:
   GCLOUD_AUTH: ${{ secrets.GCP_SA_KEY }}
   GAE_PROJECT: ${{ secrets.GAE_PROJECT }}
   GAE_SERVICE: ${{ secrets.GAE_SERVICE }}
+  TF_VARS: ${{ secrets.tf_env_vars }} # js object of tf env vars to put into a varfile
+  TF_VAR_gcp_project: ${{secrets.GAE_PROJECT}}
+
 
 jobs:
   dependencies:
@@ -152,10 +155,69 @@ jobs:
         name: dist
         path: dist
 
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: 13
+    - name: Get yarn cache
+      id: yarn-cache
+      run: echo "::set-output name=dir::$(yarn cache dir)"
+    - uses: actions/cache@v1
+      id: cache-deps
+      with:
+        path: ${{ steps.yarn-cache.outputs.dir }}
+        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-yarn-
+    - name: Install dependencies
+      run: yarn install
+      # if: steps.cache-deps.outputs.cache-hit != 'true'
+    - uses: ./.github/actions/select-environment
+      name: Selects the environment for deployment
+      id: select-deploy
+      with:
+        github-token: ${{github.token}}
+        debug: true
+    - name: Place GCP Credentials on disk for Terraform
+      run: echo "${{ secrets.GCP_SA_KEY }}" > terraform/credentials.json
+    - name: Terraform Init
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: 0.12.13
+        tf_actions_subcommand: 'init'
+        tf_actions_working_dir: './terraform'
+        args: '-var-file="./terraform.tfvars"'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GOOGLE_BACKEND_CREDENTIALS: credentials.json
+    - name: 'Terraform Plan' # outputs, tf_actions_output
+      uses: hashicorp/terraform-github-actions@master
+      id: tf-plan
+      with:
+        tf_actions_version: 0.12.13
+        tf_actions_subcommand: 'plan'
+        tf_actions_working_dir: './terraform'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Store plan for deploy job
+      run: echo "${{ steps.tf-plan.outputs.tf_actions_output  }}" > tf.plan
+    - name: Upload TF Plan artifact 
+      uses: actions/upload-artifact@v1
+      with:
+        name: tf.plan
+        path: terraform/tf.plan
+
   deploy:
     name: Create Github Deployment
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, terraform-plan]
     steps:
     - name: 'Checkout'
       uses: 'actions/checkout@v1'
@@ -184,106 +246,27 @@ jobs:
     - name: Build project
       run: yarn run build
       if: steps.cache-build.outputs.cache-hit != 'true'
-    - uses: actions/github-script@0.4.0
-      name: Configure environment for deployment
-      id: configure-deploy
+    - uses: ./.github/actions/select-environment
+      name: Selects the environment for deployment
+      id: select-deploy
       with:
         github-token: ${{github.token}}
         debug: true
-        script: |
-          const shortSha = context.sha.substr(0,8)
-          const gaeProject = process.env.GAE_PROJECT;
-          const gaeService = process.env.GAE_SERVICE;
-          const environments = {
-            review: {
-              ref: false,
-              name: process.env.REVIEW_ENVIRONMENT,
-              transient: true,
-              production: false,
-              gaeVersion: `pr-${context.payload.number}`,
-              extraFlags: '',
-              auto_inactive: false,
-            },
-            dev: {
-              ref: process.env.DEV_REF,
-              name: process.env.DEVELOPMENT_ENVIRONMENT,
-              transient: false,
-              production: false,
-              gaeVersion:`${process.env.DEVELOPMENT_ENVIRONMENT}-${shortSha}`,
-              extraFlags: '',
-              auto_inactive: true,
-            },
-            staging: {
-              ref: process.env.STAGING_REF,
-              name: process.env.STAGING_ENVIRONMENT,
-              transient: false,
-              production: false,
-              gaeVersion:`${process.env.STAGING_ENVIRONMENT}-${shortSha}`,
-              extraFlags: '',
-              auto_inactive: true,
-            },
-            production: {
-              ref: process.env.PRODUCTION_REF,
-              name: process.env.PRODUCTION_ENVIRONMENT,
-              transient: false,
-              production: true,
-              gaeVersion: `${process.env.PRODUCTION_ENVIRONMENT}-${shortSha}`,
-              extraFlags: '--promote',
-              auto_inactive: true,
-            },
-          };
-
-          const getFlags = env =>  `--no-stop-previous-version --version=${env.gaeVersion} --project=${gaeProject} -q ${env.extraFlags || ''}`;
-          let environment = environments.review;
-          let sourceRef = context.ref;
-          let isPush = false
-          let description = `Environment for ${sourceRef}`
-
-          if (context.eventName === 'pull_request') {
-            sourceRef = context.payload.pull_request.head.ref
-          }
-          if (context.eventName === 'push') {
-            isPush = true
-          }
-
-          // determine what environment we're acting on.
-          if (isPush && sourceRef.indexOf(process.env.DEV_REF) > 1) {
-            environment = environments.dev;
-            console.info("DEV!")
-          } else if (isPush && sourceRef.indexOf(process.env.STAGING_REF) > 1) {
-            environment = environments.staging;
-            console.info("STG!")
-          } else if (isPush && sourceRef.indexOf(process.env.PRODUCTION_REF) > 1) {
-            environment = environments.production;
-            console.info("PRD!")
-          } else {
-            console.info("RVW")
-          }
-          console.info('sourceRef', sourceRef)
-          console.info('selected env', environment)
-
-          const flags = getFlags(environment)
-          const production_environment = environment.production;
-          const transient_environment = environment.transient;
-          const url = `https://${environment.gaeVersion}-dot-${gaeService}-dot-${gaeProject}.appspot.com`
-
-          console.info(`Setting env vars for env ${environment.name}`)
-          const current_environment = environment.name;
-          const rawEnvVars = process.env[`env_${current_environment}`];
-          const env_vars =  JSON.parse(rawEnvVars);
-          let secretyaml = "env_variables:\n"
-          for (let [k,v] of Object.entries(env_vars)) {
-            secretyaml += `  ${k}: '${v}'\n`
-          }
-          secretyaml += `  BUILD_SHA: '${context.sha}'\n`
-          secretyaml += `  BUILD_REF: '${sourceRef}'\n`
-          let buff = new Buffer(secretyaml);
-          let base64data = buff.toString('base64');
-          console.info(`::set-env name=ENV_SECRETS::${base64data}`);
-          console.info(`::set-env name=TARGET_ENV::${JSON.stringify(environment)}`);
-          console.info(`::set-env name=ENV_URL::${url}`);
-          console.info(`::set-env name=DEPLOY_FLAGS::${flags}`);
-
+    - name: Place GCP Credentials on disk for Terraform
+      run: echo "${{ secrets.GCP_SA_KEY }}" > terraform/credentials.json
+    - name: Download TF Plan
+      uses: actions/download-artifact@v1
+      with:
+        name: tf.plan
+        path: terraform/tf.plan
+    - name: Terraform apply
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: 0.12.13
+        tf_actions_subcommand: 'apply'
+        tf_actions_working_dir: './terraform'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - uses: actions/github-script@0.4.0
       name: Create Deployment in github
       if: success()
@@ -295,19 +278,21 @@ jobs:
             sourceRef = context.payload.pull_request.head.ref
           }
           const description = `Environment for ${sourceRef}`
+          const fromOutput = ${{ steps.select-deploy.outputs.target }}
+          console.info('fromoutput', fromOutput)
           const environment = JSON.parse(process.env.TARGET_ENV);
           const options = {
             owner: context.payload.repository.owner.login,
             repo: context.payload.repository.name,
             ref: sourceRef,
             environment: environment.name,
-            environment_url: process.env.ENV_URL,
+            environment_url: ${{ steps.select-deploy.outputs.url }},
             production_environment: environment.production,
             transient_environment: environment.transient,
             description,
             required_contexts: [],
             mediaType: { previews: ['ant-man', 'flash'] },
-            payload: { flags: process.env.DEPLOY_FLAGS },
+            payload: { flags: ${{ steps.select-deploy.outputs.flags }} },
           };
           let deploymentResponse = await github.repos.createDeployment(options);
           let deployment = deploymentResponse.data;
@@ -331,9 +316,6 @@ jobs:
             auto_inactive: environment.auto_inactive,
             mediaType: { previews: ['ant-man', 'flash'] }
           })
-    - name: Dump secrets to secret.yaml
-      if: success()
-      run: echo $ENV_SECRETS | base64 --decode > secret.yaml && rm -rf Dockerfile
     - name: 'Configure GCloud'
       uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
       with:

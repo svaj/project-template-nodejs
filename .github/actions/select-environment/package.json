@@ -1,0 +1,15 @@
+{
+  "name": "select-environment",
+  "version": "1.0.0",
+  "main": "index.cjs",
+  "scripts": {
+    "build": "ncc build index.cjs"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@actions/core": "^1.2.1"
+  },
+  "devDependencies": {
+    "@zeit/ncc": "^0.21.0"
+  }
+}

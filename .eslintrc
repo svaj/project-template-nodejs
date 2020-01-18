@@ -26,8 +26,12 @@
     "plugins": ["mocha","chai-expect", "import","prefer-object-spread"],
     "rules": {
       "prefer-arrow-callback": "off",
-      "func-names": "off",
+      "func-names": "off"
     }
+  },{
+    "files": ["*.cjs"],
+    "extends": [ "airbnb-base" ],
+    "plugins": ["prefer-object-spread"],
   }],
   "rules": {
     "no-unused-vars": "warn",
@@ -48,5 +52,5 @@
       "ignoreComments": true,
       "ignoreStrings": true
     }]
-  },
+  }
 }
