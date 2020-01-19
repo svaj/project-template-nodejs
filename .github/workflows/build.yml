@@ -25,8 +25,8 @@ env:
   GAE_PROJECT: ${{ secrets.GAE_PROJECT }}
   GAE_SERVICE: ${{ secrets.GAE_SERVICE }}
   TF_VARS: ${{ secrets.tf_env_vars }} # js object of tf env vars to put into a varfile
-  TF_VAR_gcp_project: ${{secrets.GAE_PROJECT}}
-
+  TF_IN_AUTOMATION: 'true'
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   dependencies:
@@ -158,69 +158,31 @@ jobs:
   terraform-plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
-    needs: build
     steps:
     - name: 'Checkout'
       uses: 'actions/checkout@v1'
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
-      with:
-        node-version: 13
-    - name: Get yarn cache
-      id: yarn-cache
-      run: echo "::set-output name=dir::$(yarn cache dir)"
-    - uses: actions/cache@v1
-      id: cache-deps
-      with:
-        path: ${{ steps.yarn-cache.outputs.dir }}
-        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-yarn-
-    - name: Install dependencies
-      run: yarn install
-      # if: steps.cache-deps.outputs.cache-hit != 'true'
-    - uses: actions/cache@v1
-      id: cache-build
-      with:
-        path: dist
-        key: ${{ runner.os }}-build-${{ github.sha }}
-    - name: Build project
-      run: yarn run build
-      if: steps.cache-build.outputs.cache-hit != 'true'
     - uses: ./.github/actions/select-environment
       name: Selects the environment for deployment
       id: select-deploy
       with:
         github-token: ${{github.token}}
+        google-credentials: ${{ secrets.GCP_SA_KEY }}
+        google-credentials-encoded: true
         debug: true
-    - name: Place GCP Credentials on disk for Terraform
-      run: echo "${{ secrets.GCP_SA_KEY }}" > terraform/credentials.json
-    - name: Terraform Init
-      uses: hashicorp/terraform-github-actions@master
-      with:
-        tf_actions_version: 0.12.13
-        tf_actions_subcommand: 'init'
-        tf_actions_working_dir: './terraform'
-        args: '-var-file="./terraform.tfvars"'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GOOGLE_BACKEND_CREDENTIALS: credentials.json
-    - name: 'Terraform Plan' # outputs, tf_actions_output
-      uses: hashicorp/terraform-github-actions@master
-      id: tf-plan
-      with:
-        tf_actions_version: 0.12.13
-        tf_actions_subcommand: 'plan'
-        tf_actions_working_dir: './terraform'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Store plan for deploy job
-      run: echo "${{ steps.tf-plan.outputs.tf_actions_output  }}" > tf.plan
+    - name: TF init
+      working-directory: ./terraform
+      run: terraform init -backend-config="bucket=$TF_VAR_gcp_state_bucket_name" -backend-config="credentials=./credentials-decoded.json"
+    - name: TF validate
+      working-directory: ./terraform
+      run: terraform validate
+    - name: TF Plan
+      working-directory: ./terraform
+      run: terraform plan -out=tf.plan
     - name: Upload TF Plan artifact 
       uses: actions/upload-artifact@v1
       with:
         name: tf.plan
-        path: terraform/tf.plan
+        path: ${{github.workspace}}/terraform/tf.plan
 
   deploy:
     name: Create Github Deployment
@@ -259,22 +221,20 @@ jobs:
       id: select-deploy
       with:
         github-token: ${{github.token}}
+        google-credentials: ${{ secrets.GCP_SA_KEY }}
+        google-credentials-encoded: true
         debug: true
-    - name: Place GCP Credentials on disk for Terraform
-      run: echo "${{ secrets.GCP_SA_KEY }}" > terraform/credentials.json
     - name: Download TF Plan
       uses: actions/download-artifact@v1
       with:
         name: tf.plan
-        path: terraform/tf.plan
-    - name: Terraform apply
-      uses: hashicorp/terraform-github-actions@master
-      with:
-        tf_actions_version: 0.12.13
-        tf_actions_subcommand: 'apply'
-        tf_actions_working_dir: './terraform'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        path: ${{github.workspace}}/terraform
+    - name: TF init
+      working-directory: ./terraform
+      run: terraform init -backend-config="bucket=$TF_VAR_gcp_state_bucket_name" -backend-config="credentials=./credentials-decoded.json"
+    - name: TF apply
+      working-directory: ./terraform
+      run: terraform apply tf.plan
     - uses: actions/github-script@0.4.0
       name: Create Deployment in github
       if: success()
@@ -286,21 +246,19 @@ jobs:
             sourceRef = context.payload.pull_request.head.ref
           }
           const description = `Environment for ${sourceRef}`
-          const fromOutput = ${{ steps.select-deploy.outputs.target }}
-          console.info('fromoutput', fromOutput)
           const environment = JSON.parse(process.env.TARGET_ENV);
           const options = {
             owner: context.payload.repository.owner.login,
             repo: context.payload.repository.name,
             ref: sourceRef,
             environment: environment.name,
-            environment_url: ${{ steps.select-deploy.outputs.url }},
+            environment_url: process.env.ENV_URL,
             production_environment: environment.production,
             transient_environment: environment.transient,
             description,
             required_contexts: [],
             mediaType: { previews: ['ant-man', 'flash'] },
-            payload: { flags: ${{ steps.select-deploy.outputs.flags }} },
+            payload: { flags: process.env.DEPLOY_FLAGS },
           };
           let deploymentResponse = await github.repos.createDeployment(options);
           let deployment = deploymentResponse.data;
@@ -363,7 +321,7 @@ jobs:
             auto_inactive: environment.auto_inactive,
             mediaType: { previews: ['ant-man', 'flash'] }
           })
-          if (process.env.TARGET_ENV === process.env.REVIEW_ENVIRONMENT) {
+          if (environment.name === process.env.REVIEW_ENVIRONMENT && context.payload.number) {
             const commentPrefix = 'The code in this PR can be reached at'
             const body = `${commentPrefix} ${process.env.ENV_URL}`
             // get comments

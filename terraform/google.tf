@@ -2,16 +2,19 @@ provider "google" {
   project = var.gcp_project
   region  = var.gcp_region
   zone    = var.gcp_zone
-  version = "~> 2.17"
+  version = "~> 3.4"
 }
 
 resource "google_storage_bucket" "state-store" {
   name     = var.gcp_state_bucket_name
   location = var.gcp_state_bucket_location
+  versioning {
+    enabled = true
+  }
 }
 
 resource "google_storage_bucket_acl" "state-store-acl" {
-  bucket         = "${google_storage_bucket.state-store.name}"
+  bucket         = google_storage_bucket.state-store.name
   predefined_acl = "projectprivate"
 }
 
@@ -22,13 +25,12 @@ resource "google_project" "project" {
 }
 
 resource "google_app_engine_application" "app" {
-  project     = "${google_project.project.project_id}"
+  project     = google_project.project.project_id
   location_id = var.gae_location_id
 }
 
 terraform {
   backend "gcs" {
-    bucket = var.gcp_state_bucket_name
-    prefix = "tf/state"
+    # prefix = "tf/state"
   }
 }

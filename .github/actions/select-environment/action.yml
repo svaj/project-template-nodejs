@@ -9,4 +9,4 @@ outputs:
     description: The flags to pass on to google app deploy
 runs:
   using: node12
-  main: index.cjs
+  main: dist/index.js
