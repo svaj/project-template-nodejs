@@ -160,8 +160,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-    - name: Checkout
-      uses: actions/checkout@master
+    - name: 'Checkout'
+      uses: 'actions/checkout@v1'
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
       with:
@@ -179,6 +179,14 @@ jobs:
     - name: Install dependencies
       run: yarn install
       # if: steps.cache-deps.outputs.cache-hit != 'true'
+    - uses: actions/cache@v1
+      id: cache-build
+      with:
+        path: dist
+        key: ${{ runner.os }}-build-${{ github.sha }}
+    - name: Build project
+      run: yarn run build
+      if: steps.cache-build.outputs.cache-hit != 'true'
     - uses: ./.github/actions/select-environment
       name: Selects the environment for deployment
       id: select-deploy
