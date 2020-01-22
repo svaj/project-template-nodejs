@@ -2,7 +2,7 @@ name: PR deploy clean up
 
 on:
   pull_request:
-    types: closed
+    types: [closed]
 
 
 # Required secrets
@@ -12,7 +12,7 @@ on:
 jobs:
   remove-transient-deployment:
     name: Remove Review deployment
-    runs-on: [ubuntu-latest, self-hosted]
+    runs-on: ubuntu-latest 
     steps:
     - name: Set deployment as inactive
       uses: actions/github-script@0.2.0

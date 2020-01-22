@@ -1,0 +1,12 @@
+name: Select Environment
+description: Makes CI easier by selecting an environment based on branch or tag!
+outputs:
+  target:
+    description: The selected environment
+  url: 
+    description: The environment's deployed url
+  flags:
+    description: The flags to pass on to google app deploy
+runs:
+  using: node12
+  main: dist/index.js

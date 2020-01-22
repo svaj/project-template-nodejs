@@ -10,7 +10,7 @@ on:
     tags:
       - 'v-*'
 env:
-  CI: true
+  CI: true 
   DEV_REF: heads/develop
   STAGING_REF: heads/master
   PRODUCTION_REF: tags/v-*
@@ -25,11 +25,14 @@ env:
   GCLOUD_AUTH: ${{ secrets.GCP_SA_KEY }}
   GAE_PROJECT: ${{ secrets.GAE_PROJECT }}
   GAE_SERVICE: ${{ secrets.GAE_SERVICE }}
+  TF_VARS: ${{ secrets.tf_env_vars }} # js object of tf env vars to put into a varfile
+  TF_IN_AUTOMATION: 'true'
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   dependencies:
     name: Install and cache dependencies
-    runs-on: [ubuntu-latest, self-hosted]
+    runs-on: ubuntu-latest
     steps:
     - name: 'Checkout'
       uses: 'actions/checkout@v1'
@@ -49,11 +52,11 @@ jobs:
           ${{ runner.os }}-yarn-
     - name: Install dependencies
       run: yarn install --frozen-lockfile
-      if: steps.cache-deps.outputs.cache-hit != 'true'
+      # if: steps.cache-deps.outputs.cache-hit != 'true'
 
   test:
     name: Run test suite
-    runs-on: [ubuntu-latest, self-hosted]
+    runs-on: ubuntu-latest
     needs: dependencies
     steps:
     - name: 'Checkout'
@@ -73,20 +76,25 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-yarn-
     - name: Install dependencies
-      if: steps.cache-deps.outputs.cache-hit != 'true'
+      # if: steps.cache-deps.outputs.cache-hit != 'true'
       run: yarn install --frozen-lockfile
     - name: Run tests
-      run: yarn test
-    - name: Coverage Report
+      run: yarn test-ci
+    - name: Upload Test Report
       uses: actions/upload-artifact@v1
       with:
-        name: code-coverage-report
-        path: lcov
+        name: code-test-report
+        path: test-results.xml
+    # - name: Upload coverage
+    #   uses: actions/upload-artifact@v1
+    #   with:
+    #     name: code-coverage-report
+    #     path: coverage
 
 
   lint:
     name: Lint code
-    runs-on: [ubuntu-latest, self-hosted]
+    runs-on: ubuntu-latest
     needs: dependencies
     steps:
     - name: 'Checkout'
@@ -107,11 +115,13 @@ jobs:
           ${{ runner.os }}-yarn-
     - name: Install dependencies
       run: yarn install --frozen-lockfile
-      if: steps.cache-deps.outputs.cache-hit != 'true'
+      # if: steps.cache-deps.outputs.cache-hit != 'true'
+    - name: Lint code
+      run: yarn lint
 
   build:
     name: Build project
-    runs-on: [ubuntu-latest, self-hosted]
+    runs-on: ubuntu-latest
     needs: [lint, test]
     steps:
     - name: 'Checkout'
@@ -132,7 +142,7 @@ jobs:
           ${{ runner.os }}-yarn-
     - name: Install dependencies
       run: yarn install --frozen-lockfile
-      if: steps.cache-deps.outputs.cache-hit != 'true'
+      # if: steps.cache-deps.outputs.cache-hit != 'true'
     - uses: actions/cache@v1
       id: cache-build
       with:
@@ -146,10 +156,39 @@ jobs:
         name: dist
         path: dist
 
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    steps:
+    - name: 'Checkout'
+      uses: 'actions/checkout@v1'
+    - uses: ./.github/actions/select-environment
+      name: Selects the environment for deployment
+      id: select-deploy
+      with:
+        github-token: ${{github.token}}
+        google-credentials: ${{ secrets.GCP_SA_KEY }}
+        google-credentials-encoded: true
+        debug: true
+    - name: TF init
+      working-directory: ./terraform
+      run: terraform init -backend-config="bucket=$TF_VAR_gcp_state_bucket_name" -backend-config="credentials=./credentials-decoded.json"
+    - name: TF validate
+      working-directory: ./terraform
+      run: terraform validate
+    - name: TF Plan
+      working-directory: ./terraform
+      run: terraform plan -out=tf.plan
+    - name: Upload TF Plan artifact 
+      uses: actions/upload-artifact@v1
+      with:
+        name: tf.plan
+        path: ${{github.workspace}}/terraform/tf.plan
+
   deploy:
     name: Create Github Deployment
-    runs-on: [ubuntu-latest, self-hosted]
-    needs: build
+    runs-on: ubuntu-latest
+    needs: [build, terraform-plan]
     steps:
     - name: 'Checkout'
       uses: 'actions/checkout@v1'
@@ -169,7 +208,7 @@ jobs:
           ${{ runner.os }}-yarn-
     - name: Install dependencies
       run: yarn install
-      if: steps.cache-deps.outputs.cache-hit != 'true'
+      # if: steps.cache-deps.outputs.cache-hit != 'true'
     - uses: actions/cache@v1
       id: cache-build
       with:
@@ -178,99 +217,28 @@ jobs:
     - name: Build project
       run: yarn run build
       if: steps.cache-build.outputs.cache-hit != 'true'
-    - uses: actions/github-script@0.4.0
-      name: Configure environment for deployment
-      id: configure-deploy
+    - uses: ./.github/actions/select-environment
+      name: Selects the environment for deployment
+      id: select-deploy
       with:
         github-token: ${{github.token}}
-        script: |
-          const environments = {
-            review: {
-              ref: false
-              name: process.env.REVIEW_ENVIROMENT,
-              transient: true,
-              production: false,
-              gaeVersion: `pr-${context.payload.number}`,
-              extraFlags: ''
-              auto_inactive: false,
-            },
-            dev: {
-              ref: process.env.DEV_REF,
-              name: process.env.DEVELOPMENT_ENVIRONMENT,
-              transient: false,
-              production: false,
-              gaeVersion:`${process.env.DEVELOPMENT_ENVIRONMENT}-${shortSha}`,
-              extraFlags: ''
-              auto_inactive: true,
-            },
-            staging: {
-              ref: process.env.STAGING_REF,
-              name: process.env.STAGING_ENVIRONMENT,
-              transient: false,
-              production: false,
-              gaeVersion:`${process.env.STAGING_ENVIRONMENT}-${shortSha}`,
-              extraFlags: ''
-              auto_inactive: true,
-            },
-            production: {
-              ref: process.env.PRODUCTION_REF,
-              name: process.env.PRODUCTION_ENVIRONMENT,
-              transient: false,
-              production: true,
-              gaeVersion: `${process.env.PRODUCTION_ENVIRONMENT}-${shortSha}`,
-              extraFlags: '--promote'
-              auto_inactive: true,
-            },
-          }
-          const getFlags = env =>  `--no-stop-previous-version --version=${env.gaeVersion} --project=${gaeProject} -q ${env.extraFlags || ''}`;
-          let environment = environments.review;
-          let sourceRef = context.ref;
-          let isPush = false
-          let description = `Environment for ${sourceRef}`
-          
-          if (context.eventName === 'pull_request') {
-            sourceRef = context.payload.pull_request.head.ref
-          }
-          if (context.eventName === 'push') {
-            isPush = true
-          }
-          const gaeProject = process.env.GAE_PROJECT;
-          const gaeService = process.env.GAE_SERVICE;
-          const shortSha = context.sha.substr(0,8)
-
-          // determine what environment we're acting on.
-          if (isPush && sourceRef.indexOf(process.env.DEV_REF) > 1) {
-            environment = environments.dev;
-          } else if (isPush && sourceRef.indexOf(process.env.STAGING_REF) > 1) {
-            environment = environments.staging;
-          } else if (isPush && sourceRef.indexOf(process.env.PRODUCTION_REF) > 1) {
-            environment = environments.production;
-          }
-
-          const flags = getFlags(environment)
-          const production_environment = environment.production;
-          const transient_environment = environment.transient;
-          const url = `https://${environment.gaeVersion}-dot-${gaeService}-dot-${gaeProject}.appspot.com`
-
-          console.info(`Setting env vars for env ${environment.name}`)
-          const current_environment = environment.name;
-          const rawEnvVars = process.env[`env_${current_environment}`];
-          const env_vars =  JSON.parse(rawEnvVars);
-          let secretyaml = "env_variables:\n"
-          for (let [k,v] of Object.entries(env_vars)) {
-            secretyaml += `  ${k}: '${v}'\n`
-          }
-          secretyaml += `  BUILD_SHA: '${context.sha}'\n`
-          secretyaml += `  BUILD_REF: '${sourceRef}'\n`
-          let buff = new Buffer(secretyaml);
-          let base64data = buff.toString('base64');
-          console.info(`::set-env name=ENV_SECRETS::${base64data}`);
-          console.info(`::set-env name=TARGET_ENV::${JSON.stringify(environment)}`);
-          console.info(`::set-env name=ENV_URL::${url}`);
-          console.info(`::set-env name=DEPLOY_FLAGS::${flags}`);
+        google-credentials: ${{ secrets.GCP_SA_KEY }}
+        google-credentials-encoded: true
+        debug: true
+    - name: Download TF Plan
+      uses: actions/download-artifact@v1
+      with:
+        name: tf.plan
+        path: ${{github.workspace}}/terraform
+    - name: TF init
+      working-directory: ./terraform
+      run: terraform init -backend-config="bucket=$TF_VAR_gcp_state_bucket_name" -backend-config="credentials=./credentials-decoded.json"
+    - name: TF apply
+      working-directory: ./terraform
+      run: terraform apply tf.plan
     - uses: actions/github-script@0.4.0
       name: Create Deployment in github
-      if: success()
+      if:  success()
       with:
         github-token: ${{github.token}}
         script: |
@@ -315,10 +283,8 @@ jobs:
             auto_inactive: environment.auto_inactive,
             mediaType: { previews: ['ant-man', 'flash'] }
           })
-    - name: Dump secrets to secret.yaml
-      if: success()
-      run: echo $ENV_SECRETS | base64 --decode > secret.yaml && rm -rf Dockerfile
     - name: 'Configure GCloud'
+      if: success()
       uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
       with:
         version: '275.0.0'
@@ -357,7 +323,7 @@ jobs:
             auto_inactive: environment.auto_inactive,
             mediaType: { previews: ['ant-man', 'flash'] }
           })
-          if (process.env.TARGET_ENV === process.env.REVIEW_ENVIRONMENT) {
+          if (environment.name === process.env.REVIEW_ENVIRONMENT && context.payload.number) {
             const commentPrefix = 'The code in this PR can be reached at'
             const body = `${commentPrefix} ${process.env.ENV_URL}`
             // get comments
@@ -405,9 +371,9 @@ jobs:
 
   publish:
     name: Run test suite
-    runs-on: [ubuntu-latest, self-hosted]
+    runs-on: ubuntu-latest
     needs: deploy
-    if: context.event_name === 'push' && startsWith(context.event.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
     steps:
     - name: 'Checkout'
       uses: 'actions/checkout@v1'
@@ -428,8 +394,8 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-yarn-
     - name: Install dependencies
-      run: yarn install
-      if: steps.cache-deps.outputs.cache-hit != 'true'
-    - run: yarn publish
+      run: yarn install --frozen-lockfile
+      # if: steps.cache-deps.outputs.cache-hit != 'true'
+    - run: yarn release
       env:
         NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
