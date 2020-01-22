@@ -8,7 +8,7 @@ on:
       - master
       - develop
     tags:
-      - 'v-*'
+      - v-*
 env:
   CI: true 
   DEV_REF: heads/develop
