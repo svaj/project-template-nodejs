@@ -5,6 +5,8 @@ const tc = require('@actions/tool-cache')
 const github = require('@actions/github');
 
 const TERRAFORM_VERSION = '0.12.19'
+const MAX_PR_PAGES = 5;
+
 const main = async () => {
   try {
     const context = github.context;
@@ -142,6 +144,52 @@ const main = async () => {
     core.exportVariable('TARGET_ENV', JSON.stringify(environment));
     core.exportVariable('ENV_URL', url);
     core.exportVariable('DEPLOY_FLAGS', flags);
+
+/** 
+    let shouldDeploy = 0
+    let associatedPRs = []
+    // get any associated PR if deploying to review
+    if (environment.name === process.env.REVIEW_ENVIRONMENT && isPush) {
+      const token = core.getInput('github-token')
+      const octokit = new github.GitHub(token)
+      const pushRef = context.event.ref
+      const tagOrBranch = pushRef.substr(pushRef.indexOf('/', pushRef.indexOf('/')))
+      const owner = context.event.repository.owner.login
+      const head = `${owner}:${tagOrBranch}`
+      let prs = await octokit.pulls.list({
+          owner,
+          repo: context.event.repository.name,
+          state: open,
+          head,
+          per_page: 100
+      })
+      core.info(`Searched for PRs associated with push`, prs)
+      let page = 1
+      while (prs.length > 0 && page < MAX_PR_PAGES) {
+        associatedPRs = [...associatedPRs, ...prs]
+        page++
+        prs = await octokit.pulls.list({
+          owner: context.event.repository.owner.login,
+          repo: context.event.repository.name,
+          state: open,
+          head: context.event.ref,
+          page,
+          per_page: 100
+      })
+      }
+
+    }
+**/
+    // const deployableReview = !isPush && environment.name === process.env.REVIEW_ENVIRONMENT
+    // const deployableMain = isPush && environment.name !== process.env.REVIEW_ENVIRONMENT
+    // if (deployableMain || deployableReview) {
+    //   shouldDeploy = 1
+    // }
+
+    // core.exportVariable('SHOULD_DEPLOY', shouldDeploy)
+    // core.exportVariable('ASSOCIATED_PRS', JSON.stringify(associatedPRs))
+
+    // core.setOutput('SHOULD_DEPLOY', shouldDeploy)
     core.setOutput('target', JSON.stringify(environment));
     core.setOutput('url', url);
     core.setOutput('flags', flags);
