@@ -2,7 +2,7 @@ name: PR deploy clean up
 
 on:
   pull_request:
-    types: closed
+    types: [closed]
 
 
 # Required secrets

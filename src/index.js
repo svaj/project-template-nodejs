@@ -1,7 +1,5 @@
-import Logger from './lib/logger';
+// eslint-disable-next-line no-global-assign
+require = require('esm')(module/* , options */);
+module.exports = require('./main.js');
 
-const logger = Logger({
-  level: 'debug'
-})
-
-logger.info("Hello world.")
+module.exports.main().listen(process.env.PORT || 3000);
