@@ -4,52 +4,50 @@ on:
   pull_request:
     types: [closed]
 
-
 # Required secrets
-# GCP_SA_KEY
-# GAE_PROJECT
+env:
+  GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+  GAE_SERVICE: ${{ secrets.GAE_SERVICE }}
+  GAE_PROJECT: ${{ secrets.GAE_PROJECT }}
 
 jobs:
   remove-transient-deployment:
     name: Remove Review deployment
     runs-on: ubuntu-latest
     steps:
-    - name: Set deployment as inactive
-      uses: actions/github-script@0.2.0
-      with:
-        github-token: ${{github.token}}
-        script: |
-          const deploymentResponse = await github.repos.listDeployments({
-            owner: context.payload.repository.owner.login,
-            repo: context.payload.repository.name,
-            sha: context.sha,
-            ref: context.ref
-          });
-          const deployments = deploymentResponse.data
-          for (const deployment of deployments) {
-            github.repos.createDeploymentStatus({
+      - name: Set deployment as inactive
+        uses: actions/github-script@0.2.0
+        with:
+          github-token: ${{github.token}}
+          script: |
+            const deploymentResponse = await github.repos.listDeployments({
               owner: context.payload.repository.owner.login,
               repo: context.payload.repository.name,
-              deployment_id: deployment.id,
-              state: 'inactive',
-              auto_inactive: false,
-            })
-          }
-    - name: 'Checkout'
-      uses: 'actions/checkout@v1'
-    - name: 'Configure GCloud'
-      uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
-      with:
-        version: '275.0.0'
-        service_account_key: ${{ secrets.GCP_SA_KEY }}
-    - name: Remove old version of app via gcloud versions delete.
-      env:
-        CLOUDSDK_CORE_PROJECT: ${{secrets.GAE_PROJECT}}
-      run: gcloud app versions delete "pr-${{github.event.number}}" -s ${{ secrets.GAE_PROJECT }}
-    - name: Pass even if failure
-      uses: actions/github-script@0.2.0
-      if: failure()
-      with:
-        github-token: ${{github.token}}
-        script: console.info("passing anyway.")
-  
+              sha: context.sha,
+              ref: context.ref
+            });
+            const deployments = deploymentResponse.data
+            for (const deployment of deployments) {
+              github.repos.createDeploymentStatus({
+                owner: context.payload.repository.owner.login,
+                repo: context.payload.repository.name,
+                deployment_id: deployment.id,
+                state: "inactive",
+                auto_inactive: false,
+              })
+            }
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Configure GCloud
+        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        with:
+          version: "275.0.0"
+          service_account_key: ${{ env.GCP_SA_KEY }}
+      - name: Remove old version of app via gcloud versions delete.
+        run: gcloud app versions delete "pr-${{github.event.number}}" -s $GAE_SERVICE --project $GAE_PROJECT
+      - name: Pass even if failure
+        uses: actions/github-script@0.2.0
+        if: failure()
+        with:
+          github-token: ${{github.token}}
+          script: console.info("passing anyway.")
